@@ -1,39 +1,63 @@
-import "./App.css";
-import mentors from "../../mentors.json";
+import axios, { CancelToken } from 'axios';
+import './App.css';
+import { gistUrls } from '../../mentors-gist.json';
 
-import React, { Component } from "react";
-import classNames from "classnames";
-import MentorsList from "../MentorsList/MentorsList";
-import Filter from "../Filter/Filter";
-import Header from "../Header/Header";
-import shuffle from "lodash/shuffle";
+import React, { Component } from 'react';
+import classNames from 'classnames';
+import MentorsList from '../MentorsList/MentorsList';
+import Filter from '../Filter/Filter';
+import Header from '../Header/Header';
+import shuffle from 'lodash/shuffle';
 
 // const serverEndpoint = 'http://localhost:3001';
 class App extends Component {
   state = {
-    mentors: shuffle(mentors)
+    mentors: [],
+    mentorCalls: [],
   };
 
-  handleTagSelect = async ({value: tag}) => {
-    await scrollToTop();
+  componentWillMount() {
+    const shuffledCalls = shuffle(gistUrls);
     this.setState({
-      tag
-    });
-  };
+      mentorCalls: shuffledCalls.forEach(url => {
+        const source = CancelToken.source();
+        axios.get(url, { cancelationToken: source.token }).then(({ data }) =>
+          this.setState({
+            mentors: this.state.mentors.concat([data]),
+          }),
+        );
 
-  handleCountrySelect = async ({value: country}) => {
-    await scrollToTop();
-    this.setState({
-      country
-    });
-  };
-
-  handleNameSelect = async ({value: name}) => {
-    await scrollToTop();
-    this.setState({
-      name
+        return source;
+      }),
     });
   }
+
+  componentWillUnmount() {
+    this.state.mentorCalls.forEach(token => {
+      token.cancel();
+    });
+  }
+
+  handleTagSelect = async ({ value: tag }) => {
+    await scrollToTop();
+    this.setState({
+      tag,
+    });
+  };
+
+  handleCountrySelect = async ({ value: country }) => {
+    await scrollToTop();
+    this.setState({
+      country,
+    });
+  };
+
+  handleNameSelect = async ({ value: name }) => {
+    await scrollToTop();
+    this.setState({
+      name,
+    });
+  };
 
   filterMentors = mentor => {
     const { tag, country, name } = this.state;
@@ -46,12 +70,13 @@ class App extends Component {
 
   toggleFields = () => {
     this.setState({
-      fieldsIsActive: !this.state.fieldsIsActive
+      fieldsIsActive: !this.state.fieldsIsActive,
     });
   };
 
   render() {
     const { mentors, fieldsIsActive } = this.state;
+    console.log('zac mentors ', mentors);
     const mentorsInList = mentors.filter(this.filterMentors);
 
     return (
@@ -62,18 +87,37 @@ class App extends Component {
             onTagSelected={this.handleTagSelect}
             onCountrySelected={this.handleCountrySelect}
             onNameSelected={this.handleNameSelect}
-            onToggleFilter={this.toggleFields} />
+            onToggleFilter={this.toggleFields}
+          />
           <MentorsList
             className={classNames({
-              active: fieldsIsActive
+              active: fieldsIsActive,
             })}
             mentors={mentorsInList}
           />
         </main>
         <footer>
-          <a rel="noopener noreferrer" href="https://github.com/Coding-Coach/coding-coach/blob/develop/src/pages/static/TermsAndConditions.md#terms-and-conditions" target="_blank">Terms & Conditions</a>
-          <a rel="noopener noreferrer" href="https://github.com/Coding-Coach/coding-coach/blob/develop/src/pages/static/CookiesPolicy.md#what-are-cookies" target="_blank">Cookies</a>
-          <a rel="noopener noreferrer" href="https://github.com/Coding-Coach/coding-coach/blob/develop/src/pages/static/PrivacyPolicy.md#effective-date-october-03-2018" target="_blank">Privacy Policy</a>
+          <a
+            rel="noopener noreferrer"
+            href="https://github.com/Coding-Coach/coding-coach/blob/develop/src/pages/static/TermsAndConditions.md#terms-and-conditions"
+            target="_blank"
+          >
+            Terms & Conditions
+          </a>
+          <a
+            rel="noopener noreferrer"
+            href="https://github.com/Coding-Coach/coding-coach/blob/develop/src/pages/static/CookiesPolicy.md#what-are-cookies"
+            target="_blank"
+          >
+            Cookies
+          </a>
+          <a
+            rel="noopener noreferrer"
+            href="https://github.com/Coding-Coach/coding-coach/blob/develop/src/pages/static/PrivacyPolicy.md#effective-date-october-03-2018"
+            target="_blank"
+          >
+            Privacy Policy
+          </a>
         </footer>
       </div>
     );
@@ -86,14 +130,13 @@ function scrollToTop() {
   const scrollDuration = 200;
   return new Promise(resolve => {
     var scrollStep = -window.scrollY / (scrollDuration / 15),
-        scrollInterval = setInterval(function(){
-        if ( window.scrollY !== 0 ) {
-            window.scrollBy( 0, scrollStep );
-        }
-        else {
+      scrollInterval = setInterval(function() {
+        if (window.scrollY !== 0) {
+          window.scrollBy(0, scrollStep);
+        } else {
           clearInterval(scrollInterval);
           resolve();
         }
-    },15);
+      }, 15);
   });
 }
